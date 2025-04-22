@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package user;
+option go_package = "UserService/api/pb";
+
+service UserService {
+  rpc RegisterUser (RegisterUserRequest) returns (AuthResponse);
+  rpc LoginUser (LoginUserRequest) returns (AuthResponse);
+}
+
+message RegisterUserRequest {
+  string email = 1;
+  string username = 2;
+  string password = 3;
+  string role = 4; //admin or user
+}
+
+message VerifyUserRequest {
+  string token = 1;
+}
+
+message LoginUserRequest {
+  string email = 1;
+  string username = 2;
+  string password = 3;
+}
+
+message AuthResponse {
+  string token = 1;
+  string status = 2;
+}
+
+message VerifyResponse {
+  string status = 1;
+}
