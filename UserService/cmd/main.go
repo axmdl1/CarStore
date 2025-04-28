@@ -20,6 +20,7 @@ func main() {
 	}
 	mongoURI := os.Getenv("MONGO_URI")
 	jwtSecret := os.Getenv("JWT_SECRET")
+	dbName := os.Getenv("DB_NAME")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -33,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
-	db := client.Database("carstore")
+	db := client.Database(dbName)
 
 	// Setup repository, JWT service, and usecase
 	userRepo := repository.NewUserRepository(db)
