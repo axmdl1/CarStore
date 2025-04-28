@@ -23,14 +23,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Email    string `json:"email" binding:"required,email"`
 		Username string `json:"username" binding:"required,alphanum"`
 		Password string `json:"password" binding:"required,min=6"`
-		Role     string `json:"role" binding:"required,oneof=admin user"`
+		//Role     string `json:"role" binding:"required,oneof=admin user"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	token, err := h.uc.Register(c.Request.Context(), req.Email, req.Username, req.Password, req.Role)
+	token, err := h.uc.Register(c.Request.Context(), req.Email, req.Username, req.Password, "user")
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
