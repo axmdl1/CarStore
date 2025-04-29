@@ -1,3 +1,68 @@
-syntax = 'proto3';
+syntax = "proto3";
 
 package car;
+option go_package = "CarService/api/pb";
+
+import "google/protobuf/timestamp.proto";
+
+// Car entity
+message Car {
+  string id = 1;                     // UUID
+  string brand = 2;
+  string model = 3;
+  int32 year = 4;
+  double price = 5;
+  string description = 6;
+  double engine_capacity = 7;       // liters
+  int32 mileage = 8;                // kilometers
+  string gearbox = 9;               // manual, automatic
+  string engine_type = 10;          // V8, V12, etc.
+  google.protobuf.Timestamp created_at = 11;
+}
+
+// Requests and Responses
+message CreateCarRequest {
+  Car car = 1; // omit id and created_at, server-generated
+}
+
+message CreateCarResponse {
+  Car car = 1;
+}
+
+message GetCarRequest {
+  string id = 1;
+}
+
+message GetCarResponse {
+  Car car = 1;
+}
+
+message UpdateCarRequest {
+  Car car = 1; // id field required
+}
+
+message UpdateCarResponse {
+  Car car = 1;
+}
+
+message DeleteCarRequest {
+  string id = 1;
+}
+
+message DeleteCarResponse {
+  bool success = 1;
+}
+
+message ListCarsRequest {}
+
+message ListCarsResponse {
+  repeated Car cars = 1;
+}
+
+service CarService {
+  rpc CreateCar(CreateCarRequest) returns (CreateCarResponse);
+  rpc GetCar(GetCarRequest) returns (GetCarResponse);
+  rpc UpdateCar(UpdateCarRequest) returns (UpdateCarResponse);
+  rpc DeleteCar(DeleteCarRequest) returns (DeleteCarResponse);
+  rpc ListCars(ListCarsRequest) returns (ListCarsResponse);
+}

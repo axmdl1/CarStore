@@ -43,7 +43,7 @@ func main() {
 
 	// Initialize Gin router and register routes
 	router := gin.Default()
-	api := router.Group("/api")
+	api := router.Group("/user")
 	handler.NewAuthHandler(api, userUC)
 
 	// Start HTTP server
