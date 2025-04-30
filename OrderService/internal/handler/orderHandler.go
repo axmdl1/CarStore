@@ -15,7 +15,11 @@ type OrderHandler struct {
 
 func NewOrderHandler(rg *gin.RouterGroup, orderUc *usecase.OrderUsecase) {
 	h := &OrderHandler{uc: orderUc}
-	rg.POST("/orders", h.Create)
+	rg.POST("/", h.Create)
+	rg.GET("/", h.List)
+	rg.GET("/:id", h.GetByID)
+	rg.PUT("/:id", h.Update)
+	rg.DELETE("/:id", h.Delete)
 
 }
 
@@ -61,6 +65,16 @@ func (o *OrderHandler) List(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, orders)
+}
+
+func (h *OrderHandler) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	order, err := h.uc.FindByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	c.JSON(http.StatusOK, order)
 }
 
 func (o *OrderHandler) Update(c *gin.Context) {
