@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -21,6 +22,7 @@ func NewOrderHandler(uc *usecase.OrderUsecase) orderpb.OrderServiceServer {
 }
 
 func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
+	log.Printf("CreateOrder request: %+v", req)
 	e := &entity.Order{
 		UserID:     uuid.MustParse(req.UserId),
 		CarID:      uuid.MustParse(req.CarId),
@@ -42,6 +44,7 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderpb.CreateOrder
 }
 
 func (h *OrderHandler) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.GetOrderResponse, error) {
+	log.Printf("GetOrder request: %+v", req)
 	e, err := h.uc.FindByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
@@ -58,6 +61,7 @@ func (h *OrderHandler) GetOrder(ctx context.Context, req *orderpb.GetOrderReques
 }
 
 func (h *OrderHandler) UpdateOrder(ctx context.Context, req *orderpb.UpdateOrderRequest) (*orderpb.UpdateOrderResponse, error) {
+	log.Printf("UpdateOrder request: %+v", req)
 	e := &entity.Order{
 		ID:         uuid.MustParse(req.Order.Id),
 		UserID:     uuid.MustParse(req.Order.UserId),
@@ -74,13 +78,15 @@ func (h *OrderHandler) UpdateOrder(ctx context.Context, req *orderpb.UpdateOrder
 }
 
 func (h *OrderHandler) DeleteOrder(ctx context.Context, req *orderpb.DeleteOrderRequest) (*orderpb.DeleteOrderResponse, error) {
+	log.Printf("DeleteOrder request: %+v", req)
 	if err := h.uc.Delete(ctx, req.Id); err != nil {
 		return nil, err
 	}
 	return &orderpb.DeleteOrderResponse{Success: true}, nil
 }
 
-func (h *OrderHandler) ListOrders(ctx context.Context, _ *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
+func (h *OrderHandler) ListOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
+	log.Printf("ListOrders request: %+v", req)
 	es, err := h.uc.List(ctx)
 	if err != nil {
 		return nil, err

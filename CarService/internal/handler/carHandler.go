@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 
 	carpetpb "CarStore/CarService/api/pb/car"
 	"CarStore/CarService/internal/entity"
@@ -21,6 +22,7 @@ func NewCarHandler(uc *usecase.CarUsecase) carpetpb.CarServiceServer {
 }
 
 func (h *CarHandler) CreateCar(ctx context.Context, req *carpetpb.CreateCarRequest) (*carpetpb.CreateCarResponse, error) {
+	log.Printf("CreateCar request: %+v", req)
 	e := &entity.Car{
 		Brand:          req.Car.Brand,
 		Model:          req.Car.Model,
@@ -55,6 +57,7 @@ func (h *CarHandler) CreateCar(ctx context.Context, req *carpetpb.CreateCarReque
 }
 
 func (h *CarHandler) GetCar(ctx context.Context, req *carpetpb.GetCarRequest) (*carpetpb.GetCarResponse, error) {
+	log.Printf("GetCar request: %+v", req)
 	e, err := h.uc.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
@@ -77,6 +80,7 @@ func (h *CarHandler) GetCar(ctx context.Context, req *carpetpb.GetCarRequest) (*
 }
 
 func (h *CarHandler) UpdateCar(ctx context.Context, req *carpetpb.UpdateCarRequest) (*carpetpb.UpdateCarResponse, error) {
+	log.Printf("UpdateCar request: %+v", req)
 	uid, err := uuid.Parse(req.Car.Id)
 	if err != nil {
 		return nil, err
@@ -102,13 +106,15 @@ func (h *CarHandler) UpdateCar(ctx context.Context, req *carpetpb.UpdateCarReque
 }
 
 func (h *CarHandler) DeleteCar(ctx context.Context, req *carpetpb.DeleteCarRequest) (*carpetpb.DeleteCarResponse, error) {
+	log.Printf("DeleteCar request: %+v", req)
 	if err := h.uc.Delete(ctx, req.Id); err != nil {
 		return nil, err
 	}
 	return &carpetpb.DeleteCarResponse{Success: true}, nil
 }
 
-func (h *CarHandler) ListCars(ctx context.Context, _ *carpetpb.ListCarsRequest) (*carpetpb.ListCarsResponse, error) {
+func (h *CarHandler) ListCars(ctx context.Context, req *carpetpb.ListCarsRequest) (*carpetpb.ListCarsResponse, error) {
+	log.Printf("ListCars request: %+v", req)
 	es, err := h.uc.List(ctx)
 	if err != nil {
 		return nil, err
