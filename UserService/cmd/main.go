@@ -1,54 +1,66 @@
+// cmd/main.go
 package main
 
 import (
+	"log"
+	"net"
+	"os"
+
+	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
+
+	userpb "CarStore/UserService/api/pb/user"
 	"CarStore/UserService/internal/handler"
 	"CarStore/UserService/internal/repository"
 	"CarStore/UserService/internal/usecase"
 	"CarStore/UserService/pkg/jwt"
 	"CarStore/UserService/pkg/mongo"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"log"
-	"os"
 )
 
 func main() {
-	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	mongoURI := os.Getenv("MONGO_URI")
-	jwtSecret := os.Getenv("JWT_SECRET")
-	dbName := os.Getenv("DB_NAME")
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	if mongoURI == "" || jwtSecret == "" {
-		log.Fatal("Environment variables MONGO_URI and JWT_SECRET must be set")
+	// load .env
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file, reading environment directly")
 	}
 
-	// Initialize MongoDB client
+	// env vars
+	mongoURI := os.Getenv("MONGO_URI")
+	dbName := os.Getenv("DB_NAME")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50052"
+	}
+
+	// sanity check
+	if mongoURI == "" || dbName == "" || jwtSecret == "" {
+		log.Fatal("MONGO_URI, DB_NAME and JWT_SECRET must be set")
+	}
+
+	// connect Mongo
 	client, err := mongo.NewMongoClient(mongoURI)
 	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB: %v", err)
+		log.Fatalf("mongo connect: %v", err)
 	}
 	db := client.Database(dbName)
 
-	// Setup repository, JWT service, and usecase
+	// wiring
 	userRepo := repository.NewUserRepository(db)
 	jwtSvc := jwt.NewJWTService(jwtSecret, "UserService")
 	userUC := usecase.NewUserUsecase(userRepo, jwtSvc)
 
-	// Initialize Gin router and register routes
-	router := gin.Default()
-	api := router.Group("/user")
-	handler.NewAuthHandler(api, userUC)
+	// gRPC server
+	lis, err := net.Listen("tcp", ":"+grpcPort)
+	if err != nil {
+		log.Fatalf("listen on %s: %v", grpcPort, err)
+	}
+	grpcServer := grpc.NewServer()
 
-	// Start HTTP server
-	log.Printf("UserService listening on port %s", port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// register your service implementation
+	userpb.RegisterUserServiceServer(grpcServer, handler.NewAuthHandler(userUC))
+
+	log.Printf("gRPC UserService listening on :%s", grpcPort)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("gRPC serve error: %v", err)
 	}
 }

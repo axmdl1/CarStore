@@ -1,59 +1,34 @@
 package handler
 
 import (
+	userpb "CarStore/UserService/api/pb/user"
 	"CarStore/UserService/internal/usecase"
-	"github.com/gin-gonic/gin"
-	"net/http"
+	"context"
 )
 
 type AuthHandler struct {
+	userpb.UnimplementedUserServiceServer
 	uc *usecase.UserUsecase
 }
 
-func NewAuthHandler(rg *gin.RouterGroup, uc *usecase.UserUsecase) {
-	h := &AuthHandler{
-		uc: uc,
-	}
-	rg.POST("/register", h.Register)
-	rg.POST("/login", h.Login)
+func NewAuthHandler(uc *usecase.UserUsecase) userpb.UserServiceServer {
+	return &AuthHandler{uc: uc}
 }
 
-func (h *AuthHandler) Register(c *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Username string `json:"username" binding:"required,alphanum"`
-		Password string `json:"password" binding:"required,min=6"`
-		//Role     string `json:"role" binding:"required,oneof=admin user"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	token, err := h.uc.Register(c.Request.Context(), req.Email, req.Username, req.Password, "user")
+func (h *AuthHandler) RegisterUser(ctx context.Context, req *userpb.RegisterUserRequest) (*userpb.AuthResponse, error) {
+	token, err := h.uc.Register(ctx, req.Email, req.Username, req.Password, "user")
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		return
+		return &userpb.AuthResponse{Status: err.Error()}, nil
 	}
-
-	c.JSON(http.StatusCreated, gin.H{"token": token})
+	return &userpb.AuthResponse{Token: token, Status: "OK"}, nil
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
-	var req struct {
-		Identifier string `json:"identifier" binding:"required"`
-		Password   string `json:"password" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	token, err := h.uc.Login(c.Request.Context(), req.Identifier, req.Password)
+func (h *AuthHandler) LoginUser(ctx context.Context, req *userpb.LoginUserRequest) (*userpb.AuthResponse, error) {
+	// pick identifier
+	ident := req.Identifier
+	token, err := h.uc.Login(ctx, ident, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
+		return &userpb.AuthResponse{Status: err.Error()}, nil
 	}
-
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	return &userpb.AuthResponse{Token: token, Status: "OK"}, nil
 }

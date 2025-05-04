@@ -1,11 +1,24 @@
 syntax = "proto3";
 
 package user;
+
+import "google/api/annotations.proto";
+
 option go_package = "UserService/api/pb";
 
 service UserService {
-  rpc RegisterUser (RegisterUserRequest) returns (AuthResponse);
-  rpc LoginUser (LoginUserRequest) returns (AuthResponse);
+  rpc RegisterUser (RegisterUserRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/user/register"
+      body: "*"
+    };
+  };
+  rpc LoginUser (LoginUserRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/user/login"
+      body: "*"
+    };
+  };
 }
 
 message RegisterUserRequest {
@@ -20,9 +33,8 @@ message VerifyUserRequest {
 }
 
 message LoginUserRequest {
-  string email = 1;
-  string username = 2;
-  string password = 3;
+  string identifier = 1;
+  string password = 2;
 }
 
 message AuthResponse {

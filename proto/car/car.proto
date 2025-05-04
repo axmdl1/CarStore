@@ -4,6 +4,7 @@ package car;
 option go_package = "CarService/api/pb";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
 
 // Car entity
 message Car {
@@ -60,9 +61,31 @@ message ListCarsResponse {
 }
 
 service CarService {
-  rpc CreateCar(CreateCarRequest) returns (CreateCarResponse);
-  rpc GetCar(GetCarRequest) returns (GetCarResponse);
-  rpc UpdateCar(UpdateCarRequest) returns (UpdateCarResponse);
-  rpc DeleteCar(DeleteCarRequest) returns (DeleteCarResponse);
-  rpc ListCars(ListCarsRequest) returns (ListCarsResponse);
+  rpc CreateCar(CreateCarRequest) returns (CreateCarResponse) {
+    option (google.api.http) = {
+      post: "/cars"
+      body: "*"
+    };
+  };
+  rpc GetCar(GetCarRequest) returns (GetCarResponse) {
+    option (google.api.http) = {
+      get: "/cars/{id}"
+    };
+  };
+  rpc UpdateCar(UpdateCarRequest) returns (UpdateCarResponse){
+    option (google.api.http) = {
+      put: "/cars/{car.id}"
+      body: "*"
+    };
+  };
+  rpc DeleteCar(DeleteCarRequest) returns (DeleteCarResponse) {
+    option (google.api.http) = {
+      delete: "/cars/{id}"
+    };
+  };
+  rpc ListCars(ListCarsRequest) returns (ListCarsResponse) {
+    option (google.api.http) = {
+      get: "/cars"
+    };
+  };
 }
