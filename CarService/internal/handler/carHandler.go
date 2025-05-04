@@ -1,91 +1,133 @@
 package handler
 
 import (
+	"context"
+
+	carpetpb "CarStore/CarService/api/pb/car"
 	"CarStore/CarService/internal/entity"
 	"CarStore/CarService/internal/usecase"
-	"github.com/gin-gonic/gin"
+
 	"github.com/google/uuid"
-	"net/http"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type CarHandler struct {
+	carpetpb.UnimplementedCarServiceServer
 	uc *usecase.CarUsecase
 }
 
-func NewCarHandler(rg *gin.RouterGroup, uc *usecase.CarUsecase) {
-	h := &CarHandler{uc}
-	rg.POST("/", h.Create)
-	rg.GET("/", h.List)
-	rg.GET("/:id", h.GetByID)
-	rg.PUT("/:id", h.Update)
-	rg.DELETE("/:id", h.Delete)
+func NewCarHandler(uc *usecase.CarUsecase) carpetpb.CarServiceServer {
+	return &CarHandler{uc: uc}
 }
 
-func (h *CarHandler) Create(c *gin.Context) {
-	var car entity.Car
-	if err := c.ShouldBindJSON(&car); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func (h *CarHandler) CreateCar(ctx context.Context, req *carpetpb.CreateCarRequest) (*carpetpb.CreateCarResponse, error) {
+	e := &entity.Car{
+		Brand:          req.Car.Brand,
+		Model:          req.Car.Model,
+		Year:           int(req.Car.Year),
+		Price:          req.Car.Price,
+		Description:    req.Car.Description,
+		EngineCapacity: req.Car.EngineCapacity,
+		Mileage:        int(req.Car.Mileage),
+		Gearbox:        req.Car.Gearbox,
+		EngineType:     req.Car.EngineType,
 	}
-	if err := h.uc.Create(c, &car); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+
+	if err := h.uc.Create(ctx, e); err != nil {
+		return nil, err
 	}
-	c.JSON(http.StatusOK, car)
+
+	return &carpetpb.CreateCarResponse{
+		Car: &carpetpb.Car{
+			Id:             e.ID.String(),
+			Brand:          e.Brand,
+			Model:          e.Model,
+			Year:           int32(e.Year),
+			Price:          e.Price,
+			Description:    e.Description,
+			EngineCapacity: e.EngineCapacity,
+			Mileage:        int32(e.Mileage),
+			Gearbox:        e.Gearbox,
+			EngineType:     e.EngineType,
+			CreatedAt:      timestamppb.New(e.CreatedAt),
+		},
+	}, nil
 }
 
-func (h *CarHandler) List(c *gin.Context) {
-	cars, err := h.uc.List(c.Request.Context())
+func (h *CarHandler) GetCar(ctx context.Context, req *carpetpb.GetCarRequest) (*carpetpb.GetCarResponse, error) {
+	e, err := h.uc.GetByID(ctx, req.Id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return nil, err
 	}
-	c.JSON(http.StatusOK, cars)
+	return &carpetpb.GetCarResponse{
+		Car: &carpetpb.Car{
+			Id:             e.ID.String(),
+			Brand:          e.Brand,
+			Model:          e.Model,
+			Year:           int32(e.Year),
+			Price:          e.Price,
+			Description:    e.Description,
+			EngineCapacity: e.EngineCapacity,
+			Mileage:        int32(e.Mileage),
+			Gearbox:        e.Gearbox,
+			EngineType:     e.EngineType,
+			CreatedAt:      timestamppb.New(e.CreatedAt),
+		},
+	}, nil
 }
 
-func (h *CarHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	car, err := h.uc.GetByID(c.Request.Context(), id)
+func (h *CarHandler) UpdateCar(ctx context.Context, req *carpetpb.UpdateCarRequest) (*carpetpb.UpdateCarResponse, error) {
+	uid, err := uuid.Parse(req.Car.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "not found"})
-		return
+		return nil, err
 	}
-	c.JSON(http.StatusOK, car)
+	e := &entity.Car{
+		ID:             uid,
+		Brand:          req.Car.Brand,
+		Model:          req.Car.Model,
+		Year:           int(req.Car.Year),
+		Price:          req.Car.Price,
+		Description:    req.Car.Description,
+		EngineCapacity: req.Car.EngineCapacity,
+		Mileage:        int(req.Car.Mileage),
+		Gearbox:        req.Car.Gearbox,
+		EngineType:     req.Car.EngineType,
+		CreatedAt:      req.Car.CreatedAt.AsTime(),
+	}
+
+	if err := h.uc.Update(ctx, e); err != nil {
+		return nil, err
+	}
+	return &carpetpb.UpdateCarResponse{Car: req.Car}, nil
 }
 
-func (h *CarHandler) Update(c *gin.Context) {
-	// Extract ID from path and parse to UUID
-	idParam := c.Param("id")
-	if idParam == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
+func (h *CarHandler) DeleteCar(ctx context.Context, req *carpetpb.DeleteCarRequest) (*carpetpb.DeleteCarResponse, error) {
+	if err := h.uc.Delete(ctx, req.Id); err != nil {
+		return nil, err
 	}
+	return &carpetpb.DeleteCarResponse{Success: true}, nil
+}
 
-	var car entity.Car
-	if err := c.ShouldBindJSON(&car); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	uid, err := uuid.Parse(idParam)
+func (h *CarHandler) ListCars(ctx context.Context, _ *carpetpb.ListCarsRequest) (*carpetpb.ListCarsResponse, error) {
+	es, err := h.uc.List(ctx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
-		return
+		return nil, err
 	}
-	car.ID = uid
-
-	if err := h.uc.Update(c.Request.Context(), &car); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	resp := &carpetpb.ListCarsResponse{}
+	for _, e := range es {
+		resp.Cars = append(resp.Cars, &carpetpb.Car{
+			Id:             e.ID.String(),
+			Brand:          e.Brand,
+			Model:          e.Model,
+			Year:           int32(e.Year),
+			Price:          e.Price,
+			Description:    e.Description,
+			EngineCapacity: e.EngineCapacity,
+			Mileage:        int32(e.Mileage),
+			Gearbox:        e.Gearbox,
+			EngineType:     e.EngineType,
+			CreatedAt:      timestamppb.New(e.CreatedAt),
+		})
 	}
-	c.JSON(http.StatusOK, car)
-}
-
-func (h *CarHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.uc.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
+	return resp, nil
 }

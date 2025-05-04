@@ -1,32 +1,59 @@
 package main
 
 import (
-	"CarStore/CarService/internal/routes"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"log"
+	"net"
 	"os"
+
+	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
+
+	carpetpb "CarStore/CarService/api/pb/car"
+	"CarStore/CarService/internal/handler"
+	"CarStore/CarService/internal/repository"
+	"CarStore/CarService/internal/usecase"
+	"CarStore/CarService/pkg/mongo"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// load .env if present
+	_ = godotenv.Load()
+
+	// read env
 	mongoURI := os.Getenv("CAR_SERVICE_MONGO_URI")
-	port := os.Getenv("CAR_SERVICE_PORT")
-	if port == "" {
-		port = "8081"
-	}
-	if mongoURI == "" {
-		log.Fatal("CAR_SERVICE_MONGO_URI environment variable not set")
+	dbName := os.Getenv("CAR_SERVICE_DB_NAME")
+	grpcPort := os.Getenv("CAR_SERVICE_PORT")
+	if grpcPort == "" {
+		grpcPort = "9090"
 	}
 
-	router := gin.Default()
-	if err := routes.Setup(router, mongoURI); err != nil {
-		log.Fatalf("Routes setup failed: %v", err)
+	if mongoURI == "" || dbName == "" {
+		log.Fatal("MONGO_URI and DB_NAME must be set")
 	}
 
-	log.Printf("Car service running on port %s", port)
-	router.Run(":" + port)
+	// connect to Mongo
+	client, err := mongo.NewMongoClient(mongoURI)
+	if err != nil {
+		log.Fatalf("mongo connect error: %v", err)
+	}
+	db := client.Database(dbName)
+
+	// wire layers
+	carRepo := repository.NewCarRepo(db)
+	carUC := usecase.NewCarUsecase(carRepo)
+
+	// start gRPC server
+	lis, err := net.Listen("tcp", ":"+grpcPort)
+	if err != nil {
+		log.Fatalf("listen on %s failed: %v", grpcPort, err)
+	}
+	grpcServer := grpc.NewServer()
+
+	// register gRPC handler
+	carpetpb.RegisterCarServiceServer(grpcServer, handler.NewCarHandler(carUC))
+
+	log.Printf("gRPC CarService listening on :%s", grpcPort)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("gRPC serve error: %v", err)
+	}
 }
