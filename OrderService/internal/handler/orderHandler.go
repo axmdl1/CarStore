@@ -1,108 +1,101 @@
 package handler
 
 import (
+	"context"
+
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	orderpb "CarStore/OrderService/api/pb/order"
 	"CarStore/OrderService/internal/entity"
 	"CarStore/OrderService/internal/usecase"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"net/http"
-	"time"
 )
 
 type OrderHandler struct {
+	orderpb.UnimplementedOrderServiceServer
 	uc *usecase.OrderUsecase
 }
 
-func NewOrderHandler(rg *gin.RouterGroup, orderUc *usecase.OrderUsecase) {
-	h := &OrderHandler{uc: orderUc}
-	rg.POST("/", h.Create)
-	rg.GET("/", h.List)
-	rg.GET("/:id", h.GetByID)
-	rg.PUT("/:id", h.Update)
-	rg.DELETE("/:id", h.Delete)
-
+func NewOrderHandler(uc *usecase.OrderUsecase) orderpb.OrderServiceServer {
+	return &OrderHandler{uc: uc}
 }
 
-func (o *OrderHandler) Create(c *gin.Context) {
-	var req struct {
-		UserID     string  `json:"userId"`
-		CarID      string  `json:"cartId"`
-		Quantity   int     `json:"quantity"`
-		TotalPrice float64 `json:"totalPrice"`
-		Status     string  `json:"status"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	userUUID, _ := uuid.Parse(req.UserID)
-	carUUID, _ := uuid.Parse(req.CarID)
-	order := &entity.Order{
-		ID:         uuid.New(),
-		UserID:     userUUID,
-		CarID:      carUUID,
-		Quantity:   req.Quantity,
+func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
+	e := &entity.Order{
+		UserID:     uuid.MustParse(req.UserId),
+		CarID:      uuid.MustParse(req.CarId),
+		Quantity:   int(req.Quantity),
 		TotalPrice: req.TotalPrice,
-		CreatedAt:  time.Now(),
 	}
-	if req.Status == "" {
-		order.Status = "pending"
-	} else {
-		order.Status = req.Status
+	if err := h.uc.Create(ctx, e); err != nil {
+		return nil, err
 	}
-	if err := o.uc.Create(c.Request.Context(), order); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusCreated, order)
+	return &orderpb.CreateOrderResponse{Order: &orderpb.Order{
+		Id:         e.ID.String(),
+		UserId:     e.UserID.String(),
+		CarId:      e.CarID.String(),
+		Quantity:   int32(e.Quantity),
+		TotalPrice: e.TotalPrice,
+		Status:     e.Status,
+		CreatedAt:  timestamppb.New(e.CreatedAt),
+	}}, nil
 }
 
-func (o *OrderHandler) List(c *gin.Context) {
-	orders, err := o.uc.List(c.Request.Context())
+func (h *OrderHandler) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.GetOrderResponse, error) {
+	e, err := h.uc.FindByID(ctx, req.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return nil, err
 	}
-	c.JSON(http.StatusOK, orders)
+	return &orderpb.GetOrderResponse{Order: &orderpb.Order{
+		Id:         e.ID.String(),
+		UserId:     e.UserID.String(),
+		CarId:      e.CarID.String(),
+		Quantity:   int32(e.Quantity),
+		TotalPrice: e.TotalPrice,
+		Status:     e.Status,
+		CreatedAt:  timestamppb.New(e.CreatedAt),
+	}}, nil
 }
 
-func (h *OrderHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	order, err := h.uc.FindByID(c.Request.Context(), id)
+func (h *OrderHandler) UpdateOrder(ctx context.Context, req *orderpb.UpdateOrderRequest) (*orderpb.UpdateOrderResponse, error) {
+	e := &entity.Order{
+		ID:         uuid.MustParse(req.Order.Id),
+		UserID:     uuid.MustParse(req.Order.UserId),
+		CarID:      uuid.MustParse(req.Order.CarId),
+		Quantity:   int(req.Order.Quantity),
+		TotalPrice: req.Order.TotalPrice,
+		Status:     req.Order.Status,
+		CreatedAt:  req.Order.CreatedAt.AsTime(),
+	}
+	if err := h.uc.Update(ctx, e); err != nil {
+		return nil, err
+	}
+	return &orderpb.UpdateOrderResponse{Order: req.Order}, nil
+}
+
+func (h *OrderHandler) DeleteOrder(ctx context.Context, req *orderpb.DeleteOrderRequest) (*orderpb.DeleteOrderResponse, error) {
+	if err := h.uc.Delete(ctx, req.Id); err != nil {
+		return nil, err
+	}
+	return &orderpb.DeleteOrderResponse{Success: true}, nil
+}
+
+func (h *OrderHandler) ListOrders(ctx context.Context, _ *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
+	es, err := h.uc.List(ctx)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
-		return
+		return nil, err
 	}
-	c.JSON(http.StatusOK, order)
-}
-
-func (o *OrderHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
-	uid, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	res := &orderpb.ListOrdersResponse{}
+	for _, e := range es {
+		res.Orders = append(res.Orders, &orderpb.Order{
+			Id:         e.ID.String(),
+			UserId:     e.UserID.String(),
+			CarId:      e.CarID.String(),
+			Quantity:   int32(e.Quantity),
+			TotalPrice: e.TotalPrice,
+			Status:     e.Status,
+			CreatedAt:  timestamppb.New(e.CreatedAt),
+		})
 	}
-
-	var order entity.Order
-	if err := c.ShouldBindJSON(&order); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	order.ID = uid
-	if err := o.uc.Update(c.Request.Context(), &order); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, order)
-}
-
-func (o *OrderHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if err := o.uc.Delete(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
+	return res, nil
 }

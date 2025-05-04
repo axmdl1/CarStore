@@ -1,32 +1,46 @@
 package main
 
 import (
-	"CarStore/OrderService/internal/routes"
-	"github.com/gin-gonic/gin"
+	orderpb "CarStore/OrderService/api/pb/order"
+	"CarStore/OrderService/internal/handler"
+	"CarStore/OrderService/internal/repository"
+	"CarStore/OrderService/internal/usecase"
+	"CarStore/OrderService/pkg/mongo"
 	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
 	"log"
+	"net"
 	"os"
 )
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	mongoURI := os.Getenv("ORDER_SERVICE_MONGO_URI")
+	_ = godotenv.Load()
+	uri := os.Getenv("ORDER_SERVICE_MONGO_URI")
+	dbName := os.Getenv("ORDER_SERVICE_DB_NAME")
 	port := os.Getenv("ORDER_SERVICE_PORT")
 	if port == "" {
-		port = "8083"
-	}
-	if mongoURI == "" {
-		log.Fatal("Env variable MONGO_URI not set")
+		port = "50054"
 	}
 
-	router := gin.Default()
-	if err := routes.Setup(router, mongoURI); err != nil {
-		log.Fatalf("Routes setup failed: %v", err)
+	client, err := mongo.NewMongoClient(uri)
+	if err != nil {
+		log.Fatal(err)
 	}
+	db := client.Database(dbName)
 
-	log.Printf("Order service running on port %s", port)
-	router.Run(":" + port)
+	repo := repository.NewOrderRepo(db)
+	uc := usecase.NewOrderUsecase(repo)
+
+	lis, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+
+	orderpb.RegisterOrderServiceServer(grpcServer, handler.NewOrderHandler(uc))
+
+	log.Printf("gRPC OrderService listening on :%s", port)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("serve error: %v", err)
+	}
 }
