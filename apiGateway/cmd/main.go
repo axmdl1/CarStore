@@ -30,6 +30,7 @@ func run() error {
 		return err
 	}
 
+	log.Println("gRPC OrderService listening on :8080")
 	return http.ListenAndServe(":8080", mux)
 }
 
