@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 
 	carpetpb "CarStore/CarService/api/pb/car"
@@ -23,6 +25,9 @@ func NewCarHandler(uc *usecase.CarUsecase) carpetpb.CarServiceServer {
 
 func (h *CarHandler) CreateCar(ctx context.Context, req *carpetpb.CreateCarRequest) (*carpetpb.CreateCarResponse, error) {
 	log.Printf("CreateCar request: %+v", req)
+	if req.Car == nil {
+		return nil, status.Error(codes.InvalidArgument, "car payload is required")
+	}
 	e := &entity.Car{
 		Brand:          req.Car.Brand,
 		Model:          req.Car.Model,
@@ -33,6 +38,7 @@ func (h *CarHandler) CreateCar(ctx context.Context, req *carpetpb.CreateCarReque
 		Mileage:        int(req.Car.Mileage),
 		Gearbox:        req.Car.Gearbox,
 		EngineType:     req.Car.EngineType,
+		Stock:          int(req.Car.Stock),
 	}
 
 	if err := h.uc.Create(ctx, e); err != nil {
@@ -51,6 +57,7 @@ func (h *CarHandler) CreateCar(ctx context.Context, req *carpetpb.CreateCarReque
 			Mileage:        int32(e.Mileage),
 			Gearbox:        e.Gearbox,
 			EngineType:     e.EngineType,
+			Stock:          int32(e.Stock),
 			CreatedAt:      timestamppb.New(e.CreatedAt),
 		},
 	}, nil
@@ -136,4 +143,12 @@ func (h *CarHandler) ListCars(ctx context.Context, req *carpetpb.ListCarsRequest
 		})
 	}
 	return resp, nil
+}
+
+func (h *CarHandler) DecreaseStock(ctx context.Context, req *carpetpb.DecreaseStockRequest) (*carpetpb.DecreaseStockResponse, error) {
+	newStock, err := h.uc.DecreaseStock(ctx, req.CarId, int(req.Quantity))
+	if err != nil {
+		return nil, err
+	}
+	return &carpetpb.DecreaseStockResponse{NewStock: int32(newStock)}, nil
 }

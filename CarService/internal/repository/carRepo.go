@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -62,4 +63,17 @@ func (c carRepo) List(ctx context.Context) ([]*entity.Car, error) {
 	}
 
 	return cars, nil
+}
+
+func (c carRepo) DecreaseStock(ctx context.Context, id uuid.UUID, qty int) (int, error) {
+	res := c.coll.FindOneAndUpdate(ctx,
+		bson.M{"id": id, "stock": bson.M{"$gte": qty}},
+		bson.M{"$inc": bson.M{"stock": -qty}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	)
+	var updated entity.Car
+	if err := res.Decode(&updated); err != nil {
+		return 0, err
+	}
+	return updated.Stock, nil
 }

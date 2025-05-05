@@ -18,7 +18,8 @@ message Car {
   int32 mileage = 8;                // kilometers
   string gearbox = 9;               // manual, automatic
   string engine_type = 10;          // V8, V12, etc.
-  google.protobuf.Timestamp created_at = 11;
+  int32 stock = 11;
+  google.protobuf.Timestamp created_at = 12;
 }
 
 // Requests and Responses
@@ -60,11 +61,20 @@ message ListCarsResponse {
   repeated Car cars = 1;
 }
 
+message DecreaseStockRequest {
+  string car_id  = 1;
+  int32  quantity = 2;
+}
+
+message DecreaseStockResponse {
+  int32 new_stock = 1;
+}
+
 service CarService {
   rpc CreateCar(CreateCarRequest) returns (CreateCarResponse) {
     option (google.api.http) = {
       post: "/cars"
-      body: "*"
+      body: "car"
     };
   };
   rpc GetCar(GetCarRequest) returns (GetCarResponse) {
@@ -86,6 +96,12 @@ service CarService {
   rpc ListCars(ListCarsRequest) returns (ListCarsResponse) {
     option (google.api.http) = {
       get: "/cars"
+    };
+  };
+  rpc DecreaseStock(DecreaseStockRequest) returns (DecreaseStockResponse) {
+    option (google.api.http) = {
+      post: "/cars/{car_id}/decrease_stock"
+      body: "*"
     };
   };
 }

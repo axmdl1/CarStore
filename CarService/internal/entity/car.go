@@ -16,5 +16,6 @@ type Car struct {
 	Mileage        int       `json:"mileage" bson:"mileage"`
 	Gearbox        string    `json:"gearbox" bson:"gearbox"`
 	EngineType     string    `json:"engine_type" bson:"engine_type"`
+	Stock          int       `json:"stock" bson:"stock"`
 	CreatedAt      time.Time `json:"created_at" bson:"created_at"`
 }

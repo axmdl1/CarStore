@@ -7,6 +7,7 @@ import (
 	"CarStore/OrderService/internal/usecase"
 	"CarStore/OrderService/pkg/mongo"
 	"github.com/joho/godotenv"
+	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -28,8 +29,13 @@ func main() {
 	}
 	db := client.Database(dbName)
 
+	nc, err := nats.Connect(os.Getenv("NATS_URL"))
+	if err != nil {
+		log.Fatalf("NATS connect failed: %v", err)
+	}
+
 	repo := repository.NewOrderRepo(db)
-	uc := usecase.NewOrderUsecase(repo)
+	uc := usecase.NewOrderUsecase(repo, nc)
 
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {

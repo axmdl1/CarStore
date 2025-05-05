@@ -4,6 +4,7 @@ import (
 	"CarStore/CarService/internal/entity"
 	_interface "CarStore/CarService/internal/repository/interface"
 	"context"
+	"github.com/google/uuid"
 )
 
 type CarUsecase struct {
@@ -32,4 +33,12 @@ func (uc *CarUsecase) Delete(ctx context.Context, id string) error {
 
 func (uc *CarUsecase) List(ctx context.Context) ([]*entity.Car, error) {
 	return uc.repo.List(ctx)
+}
+
+func (u *CarUsecase) DecreaseStock(ctx context.Context, id string, qty int) (int, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return 0, err
+	}
+	return u.repo.DecreaseStock(ctx, uid, qty)
 }

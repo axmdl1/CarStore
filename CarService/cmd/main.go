@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+	"github.com/nats-io/nats.go"
 	"log"
 	"net"
 	"os"
@@ -41,6 +44,31 @@ func main() {
 	// wire layers
 	carRepo := repository.NewCarRepo(db)
 	carUC := usecase.NewCarUsecase(carRepo)
+
+	//nats connection
+	nc, err := nats.Connect(os.Getenv("NATS_URL"))
+	if err != nil {
+		log.Fatalf("NATS connect: %v", err)
+	}
+	_, err = nc.Subscribe("order.created", func(m *nats.Msg) {
+		var evt struct {
+			CarID    string `json:"car_id"`
+			Quantity int    `json:"quantity"`
+		}
+		if err := json.Unmarshal(m.Data, &evt); err != nil {
+			log.Printf("bad event: %v", err)
+			return
+		}
+		newStock, err := carUC.DecreaseStock(context.Background(), evt.CarID, evt.Quantity)
+		if err != nil {
+			log.Printf("decrease stock failed: %v", err)
+		} else {
+			log.Printf("stock for %s decreased by %d, now %d", evt.CarID, evt.Quantity, newStock)
+		}
+	})
+	if err != nil {
+		log.Fatalf("NATS subscribe: %v", err)
+	}
 
 	// start gRPC server
 	lis, err := net.Listen("tcp", ":"+grpcPort)
