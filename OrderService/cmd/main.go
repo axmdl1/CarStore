@@ -16,14 +16,14 @@ import (
 
 func main() {
 	_ = godotenv.Load()
-	uri := os.Getenv("ORDER_SERVICE_MONGO_URI")
+	uri := os.Getenv("MONGO_URI_ATLAS")
 	dbName := os.Getenv("ORDER_SERVICE_DB_NAME")
 	port := os.Getenv("ORDER_SERVICE_PORT")
 	if port == "" {
 		port = "50054"
 	}
 
-	client, err := mongo.NewMongoClient(uri)
+	client, err := mongo.NewMongoClient(uri + dbName)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -24,8 +24,8 @@ func main() {
 	}
 
 	// env vars
-	mongoURI := os.Getenv("MONGO_URI")
-	dbName := os.Getenv("DB_NAME")
+	mongoURI := os.Getenv("MONGO_URI_ATLAS")
+	dbName := os.Getenv("USER_SERVICE_DB_NAME")
 	jwtSecret := os.Getenv("JWT_SECRET")
 	grpcPort := os.Getenv("GRPC_PORT")
 	if grpcPort == "" {
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// connect Mongo
-	client, err := mongo.NewMongoClient(mongoURI)
+	client, err := mongo.NewMongoClient(mongoURI + dbName)
 	if err != nil {
 		log.Fatalf("mongo connect: %v", err)
 	}

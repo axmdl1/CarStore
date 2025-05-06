@@ -23,7 +23,7 @@ func main() {
 	_ = godotenv.Load()
 
 	// read env
-	mongoURI := os.Getenv("CAR_SERVICE_MONGO_URI")
+	mongoURI := os.Getenv("MONGO_URI_ATLAS")
 	dbName := os.Getenv("CAR_SERVICE_DB_NAME")
 	grpcPort := os.Getenv("CAR_SERVICE_PORT")
 	if grpcPort == "" {
@@ -35,7 +35,7 @@ func main() {
 	}
 
 	// connect to Mongo
-	client, err := mongo.NewMongoClient(mongoURI)
+	client, err := mongo.NewMongoClient(mongoURI + dbName)
 	if err != nil {
 		log.Fatalf("mongo connect error: %v", err)
 	}
