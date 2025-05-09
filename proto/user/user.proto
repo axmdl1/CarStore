@@ -6,6 +6,13 @@ import "google/api/annotations.proto";
 
 option go_package = "UserService/api/pb";
 
+message User {
+  string id = 1;
+  string email = 2;
+  string username = 3;
+  string password = 4;
+}
+
 service UserService {
   rpc RegisterUser (RegisterUserRequest) returns (AuthResponse) {
     option (google.api.http) = {
@@ -19,6 +26,29 @@ service UserService {
       body: "*"
     };
   };
+  rpc GetProfile (GetProfileRequest) returns (ProfileResponse) {
+    option (google.api.http) = {
+      get: "/user/profile/{userID}"
+    };
+  }
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
+    option (google.api.http) = {
+      get: "/user/list"
+    };
+  }
+}
+
+message GetProfileRequest {
+  string userID = 1;
+}
+
+message ProfileResponse {
+  User user = 1;
+}
+
+message ListUsersRequest {}
+message ListUsersResponse {
+  repeated User users = 1;
 }
 
 message RegisterUserRequest {

@@ -139,6 +139,7 @@ func (h *CarHandler) ListCars(ctx context.Context, req *carpetpb.ListCarsRequest
 			Mileage:        int32(e.Mileage),
 			Gearbox:        e.Gearbox,
 			EngineType:     e.EngineType,
+			Stock:          int32(e.Stock),
 			CreatedAt:      timestamppb.New(e.CreatedAt),
 		})
 	}

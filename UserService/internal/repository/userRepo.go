@@ -13,6 +13,8 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*entity.User, error)
 	FindByUsername(ctx context.Context, username string) (*entity.User, error)
 	Update(ctx context.Context, user *entity.User) error
+	FindByID(ctx context.Context, id string) (*entity.User, error)
+	FindAll(ctx context.Context) ([]*entity.User, error)
 }
 
 type userRepositoryMongo struct {
@@ -55,4 +57,29 @@ func (u userRepositoryMongo) Update(ctx context.Context, user *entity.User) erro
 	filter := bson.M{"id": user.ID}
 	_, err := u.collection.UpdateOne(ctx, filter, user)
 	return err
+}
+
+func (u userRepositoryMongo) FindByID(ctx context.Context, id string) (*entity.User, error) {
+	var user entity.User
+	uid, _ := uuid.Parse(id)
+	err := u.collection.FindOne(ctx, bson.M{"id": uid}).Decode(&user)
+	return &user, err
+}
+
+func (u userRepositoryMongo) FindAll(ctx context.Context) ([]*entity.User, error) {
+	cursor, err := u.collection.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*entity.User
+	for cursor.Next(ctx) {
+		var user entity.User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
 }

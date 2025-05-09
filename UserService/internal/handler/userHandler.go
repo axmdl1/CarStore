@@ -35,3 +35,34 @@ func (h *AuthHandler) LoginUser(ctx context.Context, req *userpb.LoginUserReques
 	}
 	return &userpb.AuthResponse{Token: token, Status: "OK"}, nil
 }
+
+func (h *AuthHandler) GetProfile(ctx context.Context, req *userpb.GetProfileRequest) (*userpb.ProfileResponse, error) {
+	log.Printf("GetProfile request: %+v", req)
+	u, err := h.uc.Profile(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &userpb.ProfileResponse{User: &userpb.User{
+		Id:       u.ID.String(),
+		Email:    u.Email,
+		Username: u.Username,
+	}}, nil
+}
+
+func (h *AuthHandler) ListUsers(ctx context.Context, req *userpb.ListUsersRequest) (*userpb.ListUsersResponse, error) {
+	log.Printf("ListUsers request: %+v", req)
+	us, err := h.uc.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resp := &userpb.ListUsersResponse{}
+	for _, u := range us {
+		resp.Users = append(resp.Users, &userpb.User{
+			Id:       u.ID.String(),
+			Email:    u.Email,
+			Username: u.Username,
+			Password: u.Password,
+		})
+	}
+	return resp, nil
+}

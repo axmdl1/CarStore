@@ -79,3 +79,11 @@ func (u *UserUsecase) Login(ctx context.Context, identifier, password string) (s
 
 	return u.jwtSvc.GenerateToken(user.ID.String(), user.Role)
 }
+
+func (u *UserUsecase) Profile(ctx context.Context, id string) (*entity.User, error) {
+	return u.repo.FindByID(ctx, id)
+}
+
+func (u *UserUsecase) List(ctx context.Context) ([]*entity.User, error) {
+	return u.repo.FindAll(ctx)
+}
