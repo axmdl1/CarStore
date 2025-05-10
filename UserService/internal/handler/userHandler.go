@@ -4,6 +4,8 @@ import (
 	userpb "CarStore/UserService/api/pb/user"
 	"CarStore/UserService/internal/usecase"
 	"context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 )
 
@@ -18,6 +20,19 @@ func NewAuthHandler(uc *usecase.UserUsecase) userpb.UserServiceServer {
 
 func (h *AuthHandler) RegisterUser(ctx context.Context, req *userpb.RegisterUserRequest) (*userpb.AuthResponse, error) {
 	log.Printf("RegisterUser request: %+v", req)
+
+	if req.Email == "" {
+		return nil, status.Error(codes.InvalidArgument, "Email is required")
+	}
+
+	if req.Username == "" {
+		return nil, status.Error(codes.InvalidArgument, "Username is required")
+	}
+
+	if req.Password == "" {
+		return nil, status.Error(codes.InvalidArgument, "Password is required")
+	}
+
 	if err := h.uc.Register(ctx, req.Email, req.Username, req.Password, "user"); err != nil {
 		return &userpb.AuthResponse{Status: err.Error()}, nil
 	}
