@@ -18,11 +18,10 @@ func NewAuthHandler(uc *usecase.UserUsecase) userpb.UserServiceServer {
 
 func (h *AuthHandler) RegisterUser(ctx context.Context, req *userpb.RegisterUserRequest) (*userpb.AuthResponse, error) {
 	log.Printf("RegisterUser request: %+v", req)
-	token, err := h.uc.Register(ctx, req.Email, req.Username, req.Password, "user")
-	if err != nil {
+	if err := h.uc.Register(ctx, req.Email, req.Username, req.Password, "user"); err != nil {
 		return &userpb.AuthResponse{Status: err.Error()}, nil
 	}
-	return &userpb.AuthResponse{Token: token, Status: "OK"}, nil
+	return &userpb.AuthResponse{Token: "", Status: "code_sent"}, nil
 }
 
 func (h *AuthHandler) LoginUser(ctx context.Context, req *userpb.LoginUserRequest) (*userpb.AuthResponse, error) {

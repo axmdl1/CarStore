@@ -28,19 +28,19 @@ func NewUserUsecase(r repository.UserRepository, j JWTService, e email.Sender) *
 	return &UserUsecase{repo: r, jwtSvc: j, emailSender: e}
 }
 
-func (u *UserUsecase) Register(ctx context.Context, email, username, password, role string) (string, error) {
+func (u *UserUsecase) Register(ctx context.Context, email, username, password, role string) error {
 	//Checking for unique username and email
 	if _, err := u.repo.FindByEmail(ctx, email); err == nil {
-		return "", errors.New("email already in use")
+		return errors.New("email already in use")
 	}
 	if _, err := u.repo.FindByUsername(ctx, username); err == nil {
-		return "", errors.New("username already in use")
+		return errors.New("username already in use")
 	}
 
 	//hashing password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	user := &entity.User{
@@ -50,18 +50,21 @@ func (u *UserUsecase) Register(ctx context.Context, email, username, password, r
 		Password:  string(hashed),
 		Role:      role,
 		CreatedAt: time.Now(),
-		IsActive:  true,
+		IsActive:  false,
 	}
 
 	if err := u.repo.Create(ctx, user); err != nil {
-		return "", err
+		return err
 	}
 
-	token, err := u.jwtSvc.GenerateToken(user.ID.String(), user.Role)
+	_, err = u.SendVerificationCode(ctx, email)
+	return err
+
+	/*token, err := u.jwtSvc.GenerateToken(user.ID.String(), user.Role)
 	if err != nil {
 		return "", err
 	}
-	return token, nil
+	return token, nil*/
 }
 
 func (u *UserUsecase) Login(ctx context.Context, identifier, password string) (string, error) {
