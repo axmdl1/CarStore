@@ -6,11 +6,13 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
-	IsActive  bool      `json:"is_active"`
+	ID               uuid.UUID `json:"id" bson:"id"`
+	Email            string    `json:"email" bson:"email"`
+	Username         string    `json:"username" bson:"username"`
+	Password         string    `json:"-" bson:"password"`
+	Role             string    `json:"role" bson:"role"`
+	IsActive         bool      `json:"is_active" bson:"is_active"`
+	VerificationCode string    `json:"-" bson:"verif_code"`
+	CodeExpiresAt    time.Time `json:"-" bson:"code_expires"`
+	CreatedAt        time.Time `json:"created_at" bson:"createdat"`
 }

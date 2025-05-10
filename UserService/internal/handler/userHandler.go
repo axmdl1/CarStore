@@ -66,3 +66,21 @@ func (h *AuthHandler) ListUsers(ctx context.Context, req *userpb.ListUsersReques
 	}
 	return resp, nil
 }
+
+func (h *AuthHandler) SendVerificationCode(ctx context.Context, req *userpb.SendCodeRequest) (*userpb.SendCodeResponse, error) {
+	log.Printf("SendVerificationCode request: %+v", req)
+	status, err := h.uc.SendVerificationCode(ctx, req.Email)
+	if err != nil {
+		return nil, err
+	}
+	return &userpb.SendCodeResponse{Status: status}, nil
+}
+
+func (h *AuthHandler) ConfirmEmail(ctx context.Context, req *userpb.ConfirmEmailRequest) (*userpb.ConfirmEmailResponse, error) {
+	log.Printf("ConfirmEmail request: %+v", req)
+	token, err := h.uc.ConfirmEmail(ctx, req.Email, req.Code)
+	if err != nil {
+		return nil, err
+	}
+	return &userpb.ConfirmEmailResponse{Token: token, Status: "verified"}, nil
+}

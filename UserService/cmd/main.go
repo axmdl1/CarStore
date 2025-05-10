@@ -2,6 +2,7 @@
 package main
 
 import (
+	"CarStore/UserService/pkg/email"
 	"log"
 	"net"
 	"os"
@@ -32,6 +33,12 @@ func main() {
 		grpcPort = "50052"
 	}
 
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
+	smtpFrom := os.Getenv("SMTP_FROM")
+
 	// sanity check
 	if mongoURI == "" || dbName == "" || jwtSecret == "" {
 		log.Fatal("MONGO_URI, DB_NAME and JWT_SECRET must be set")
@@ -47,7 +54,8 @@ func main() {
 	// wiring
 	userRepo := repository.NewUserRepository(db)
 	jwtSvc := jwt.NewJWTService(jwtSecret, "UserService")
-	userUC := usecase.NewUserUsecase(userRepo, jwtSvc)
+	emailSvc := email.NewSMTPSender(smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom)
+	userUC := usecase.NewUserUsecase(userRepo, jwtSvc, emailSvc)
 
 	// gRPC server
 	lis, err := net.Listen("tcp", ":"+grpcPort)

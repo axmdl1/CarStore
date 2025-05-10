@@ -3,10 +3,13 @@ package usecase
 import (
 	"CarStore/UserService/internal/entity"
 	"CarStore/UserService/internal/repository"
+	"CarStore/UserService/pkg/email"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -16,12 +19,13 @@ type JWTService interface {
 }
 
 type UserUsecase struct {
-	repo   repository.UserRepository
-	jwtSvc JWTService
+	repo        repository.UserRepository
+	jwtSvc      JWTService
+	emailSender email.Sender
 }
 
-func NewUserUsecase(r repository.UserRepository, j JWTService) *UserUsecase {
-	return &UserUsecase{repo: r, jwtSvc: j}
+func NewUserUsecase(r repository.UserRepository, j JWTService, e email.Sender) *UserUsecase {
+	return &UserUsecase{repo: r, jwtSvc: j, emailSender: e}
 }
 
 func (u *UserUsecase) Register(ctx context.Context, email, username, password, role string) (string, error) {
@@ -86,4 +90,35 @@ func (u *UserUsecase) Profile(ctx context.Context, id string) (*entity.User, err
 
 func (u *UserUsecase) List(ctx context.Context) ([]*entity.User, error) {
 	return u.repo.FindAll(ctx)
+}
+
+func (u *UserUsecase) SendVerificationCode(ctx context.Context, email string) (string, error) {
+	code := fmt.Sprintf("%06d", rand.Intn(1_000_000))
+	expires := time.Now().Add(15 * time.Minute)
+	if err := u.repo.SetVerificationCode(ctx, email, code, expires); err != nil {
+		return "", err
+	}
+	body := fmt.Sprintf("Your verification code is %s. It expires in 15m.", code)
+	if err := u.emailSender.Send(email, "Verify your account", body); err != nil {
+		return "", err
+	}
+	return "code_sent", nil
+}
+
+func (u *UserUsecase) ConfirmEmail(ctx context.Context, email, code string) (string, error) {
+	user, err := u.repo.VerifyCode(ctx, email, code)
+	if err != nil {
+		return "", err
+	}
+	user.IsActive = true
+	user.VerificationCode = ""
+	user.CodeExpiresAt = time.Time{}
+	if err := u.repo.Update(ctx, user); err != nil {
+		return "", err
+	}
+	token, err := u.jwtSvc.GenerateToken(user.ID.String(), user.Role)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

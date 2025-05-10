@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 type UserRepository interface {
@@ -15,6 +16,8 @@ type UserRepository interface {
 	Update(ctx context.Context, user *entity.User) error
 	FindByID(ctx context.Context, id string) (*entity.User, error)
 	FindAll(ctx context.Context) ([]*entity.User, error)
+	SetVerificationCode(ctx context.Context, email, code string, expires time.Time) error
+	VerifyCode(ctx context.Context, email, code string) (*entity.User, error)
 }
 
 type userRepositoryMongo struct {
@@ -54,8 +57,15 @@ func (u userRepositoryMongo) FindByUsername(ctx context.Context, username string
 }
 
 func (u userRepositoryMongo) Update(ctx context.Context, user *entity.User) error {
-	filter := bson.M{"id": user.ID}
-	_, err := u.collection.UpdateOne(ctx, filter, user)
+	update := bson.M{"$set": bson.M{
+		"is_active":    user.IsActive,
+		"verif_code":   user.VerificationCode,
+		"code_expires": user.CodeExpiresAt,
+	}}
+	_, err := u.collection.UpdateOne(ctx,
+		bson.M{"id": user.ID},
+		update,
+	)
 	return err
 }
 
@@ -82,4 +92,22 @@ func (u userRepositoryMongo) FindAll(ctx context.Context) ([]*entity.User, error
 		users = append(users, &user)
 	}
 	return users, nil
+}
+
+func (u *userRepositoryMongo) SetVerificationCode(ctx context.Context, email, code string, expires time.Time) error {
+	_, err := u.collection.UpdateOne(ctx,
+		bson.M{"email": email},
+		bson.M{"$set": bson.M{"verif_code": code, "code_expires": expires}},
+	)
+	return err
+}
+
+func (u *userRepositoryMongo) VerifyCode(ctx context.Context, email, code string) (*entity.User, error) {
+	var user entity.User
+	err := u.collection.FindOne(ctx, bson.M{
+		"email":        email,
+		"verif_code":   code,
+		"code_expires": bson.M{"$gte": time.Now()},
+	}).Decode(&user)
+	return &user, err
 }

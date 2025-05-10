@@ -36,6 +36,36 @@ service UserService {
       get: "/user/list"
     };
   }
+  rpc SendVerificationCode(SendCodeRequest) returns (SendCodeResponse) {
+    option (google.api.http) = {
+      post: "/user/send_code"
+      body: "*"
+    };
+  }
+  rpc ConfirmEmail(ConfirmEmailRequest) returns (ConfirmEmailResponse) {
+    option (google.api.http) = {
+      post: "/user/confirm"
+      body: "*"
+    };
+  }
+}
+
+message SendCodeRequest {
+  string email = 1;
+}
+
+message SendCodeResponse {
+  string status = 1; // e.g. "code_sent"
+}
+
+message ConfirmEmailRequest {
+  string email = 1;
+  string code  = 2;
+}
+
+message ConfirmEmailResponse {
+  string token  = 1;
+  string status = 2; // e.g. "verified"
 }
 
 message GetProfileRequest {
