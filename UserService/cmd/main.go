@@ -2,6 +2,7 @@
 package main
 
 import (
+	"CarStore/UserService/pkg/auth"
 	"CarStore/UserService/pkg/email"
 	"log"
 	"net"
@@ -62,7 +63,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("listen on %s: %v", grpcPort, err)
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(auth.UnaryAuthInterceptor(*jwtSvc)))
 
 	// register your service implementation
 	userpb.RegisterUserServiceServer(grpcServer, handler.NewAuthHandler(userUC))

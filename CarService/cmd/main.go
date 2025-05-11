@@ -1,6 +1,8 @@
 package main
 
 import (
+	"CarStore/UserService/pkg/auth"
+	"CarStore/UserService/pkg/jwt"
 	"context"
 	"encoding/json"
 	"github.com/nats-io/nats.go"
@@ -25,6 +27,7 @@ func main() {
 	// read env
 	mongoURI := os.Getenv("MONGO_URI_ATLAS")
 	dbName := os.Getenv("CAR_SERVICE_DB_NAME")
+	jwtSecret := os.Getenv("JWT_SECRET")
 	grpcPort := os.Getenv("CAR_SERVICE_PORT")
 	if grpcPort == "" {
 		grpcPort = "9090"
@@ -44,6 +47,7 @@ func main() {
 	// wire layers
 	carRepo := repository.NewCarRepo(db)
 	carUC := usecase.NewCarUsecase(carRepo)
+	jwtSvc := jwt.NewJWTService(jwtSecret, "CarService")
 
 	//nats connection
 	nc, err := nats.Connect(os.Getenv("NATS_URL"))
@@ -75,7 +79,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("listen on %s failed: %v", grpcPort, err)
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(auth.UnaryAuthInterceptor(*jwtSvc)))
 
 	// register gRPC handler
 	carpetpb.RegisterCarServiceServer(grpcServer, handler.NewCarHandler(carUC))

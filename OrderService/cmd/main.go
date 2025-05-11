@@ -6,6 +6,8 @@ import (
 	"CarStore/OrderService/internal/repository"
 	"CarStore/OrderService/internal/usecase"
 	"CarStore/OrderService/pkg/mongo"
+	"CarStore/UserService/pkg/auth"
+	"CarStore/UserService/pkg/jwt"
 	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
@@ -18,6 +20,7 @@ func main() {
 	_ = godotenv.Load()
 	uri := os.Getenv("MONGO_URI_ATLAS")
 	dbName := os.Getenv("ORDER_SERVICE_DB_NAME")
+	jwtSecret := os.Getenv("JWT_SECRET")
 	port := os.Getenv("ORDER_SERVICE_PORT")
 	if port == "" {
 		port = "50054"
@@ -36,12 +39,13 @@ func main() {
 
 	repo := repository.NewOrderRepo(db)
 	uc := usecase.NewOrderUsecase(repo, nc)
+	jwtSvc := jwt.NewJWTService(jwtSecret, "OrderService")
 
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(auth.UnaryAuthInterceptor(*jwtSvc)))
 
 	orderpb.RegisterOrderServiceServer(grpcServer, handler.NewOrderHandler(uc))
 
