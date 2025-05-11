@@ -27,8 +27,11 @@ service UserService {
     };
   };
   rpc GetProfile (GetProfileRequest) returns (ProfileResponse) {
+    //option (google.api.http) = {
+    //  get: "/user/profile/{userID}"
+    //};
     option (google.api.http) = {
-      get: "/user/profile/{userID}"
+      get: "/user/profile"
     };
   }
   rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
@@ -69,7 +72,7 @@ message ConfirmEmailResponse {
 }
 
 message GetProfileRequest {
-  string userID = 1;
+  //string userID = 1;
 }
 
 message ProfileResponse {

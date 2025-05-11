@@ -3,6 +3,7 @@ package handler
 import (
 	userpb "CarStore/UserService/api/pb/user"
 	"CarStore/UserService/internal/usecase"
+	"CarStore/UserService/pkg/auth"
 	"context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -52,9 +53,10 @@ func (h *AuthHandler) LoginUser(ctx context.Context, req *userpb.LoginUserReques
 
 func (h *AuthHandler) GetProfile(ctx context.Context, req *userpb.GetProfileRequest) (*userpb.ProfileResponse, error) {
 	log.Printf("GetProfile request: %+v", req)
-	u, err := h.uc.Profile(ctx, req.UserID)
+	uid, _ := auth.FromContext(ctx)
+	u, err := h.uc.Profile(ctx, uid)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "user not found")
 	}
 	return &userpb.ProfileResponse{User: &userpb.User{
 		Id:       u.ID.String(),
