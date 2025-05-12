@@ -5,8 +5,10 @@ import (
 	"CarStore/UserService/internal/repository"
 	"CarStore/UserService/pkg/email"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"math/rand"
@@ -22,10 +24,11 @@ type UserUsecase struct {
 	repo        repository.UserRepository
 	jwtSvc      JWTService
 	emailSender email.Sender
+	rdb         *redis.Client
 }
 
-func NewUserUsecase(r repository.UserRepository, j JWTService, e email.Sender) *UserUsecase {
-	return &UserUsecase{repo: r, jwtSvc: j, emailSender: e}
+func NewUserUsecase(r repository.UserRepository, j JWTService, e email.Sender, rdb *redis.Client) *UserUsecase {
+	return &UserUsecase{repo: r, jwtSvc: j, emailSender: e, rdb: rdb}
 }
 
 func (u *UserUsecase) Register(ctx context.Context, email, username, password, role string) error {
@@ -88,7 +91,28 @@ func (u *UserUsecase) Login(ctx context.Context, identifier, password string) (s
 }
 
 func (u *UserUsecase) Profile(ctx context.Context, id string) (*entity.User, error) {
-	return u.repo.FindByID(ctx, id)
+	if id == "" {
+		return nil, errors.New("user id required")
+	}
+	key := "user:profile:" + id
+
+	data, err := u.rdb.Get(ctx, key).Bytes()
+	if err == nil {
+		var cached entity.User
+		if err := json.Unmarshal(data, &cached); err == nil {
+			return &cached, nil
+		}
+	}
+
+	user, err := u.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	// cache result
+	if buf, err := json.Marshal(user); err == nil {
+		u.rdb.Set(ctx, key, buf, 10*time.Minute)
+	}
+	return user, nil
 }
 
 func (u *UserUsecase) List(ctx context.Context) ([]*entity.User, error) {
@@ -104,6 +128,11 @@ func (u *UserUsecase) SendVerificationCode(ctx context.Context, email string) (s
 	body := fmt.Sprintf("Your verification code is %s. It expires in 15m.", code)
 	if err := u.emailSender.Send(email, "Verify your account", body); err != nil {
 		return "", err
+	}
+
+	// invalidate cache if exists
+	if u.rdb != nil {
+		u.rdb.Del(ctx, fmt.Sprintf("user:profile:%s", email))
 	}
 	return "code_sent", nil
 }
@@ -123,5 +152,6 @@ func (u *UserUsecase) ConfirmEmail(ctx context.Context, email, code string) (str
 	if err != nil {
 		return "", err
 	}
+	u.rdb.Del(ctx, fmt.Sprintf("user:profile:%s", user.ID.String()))
 	return token, nil
 }

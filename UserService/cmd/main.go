@@ -4,6 +4,7 @@ package main
 import (
 	"CarStore/UserService/pkg/auth"
 	"CarStore/UserService/pkg/email"
+	"CarStore/UserService/pkg/redis"
 	"log"
 	"net"
 	"os"
@@ -56,7 +57,8 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	jwtSvc := jwt.NewJWTService(jwtSecret, "UserService")
 	emailSvc := email.NewSMTPSender(smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom)
-	userUC := usecase.NewUserUsecase(userRepo, jwtSvc, emailSvc)
+	rdb := redis.NewClient(os.Getenv("REDIS_ADDR"), os.Getenv("REDIS_PASS"), 0)
+	userUC := usecase.NewUserUsecase(userRepo, jwtSvc, emailSvc, rdb)
 
 	// gRPC server
 	lis, err := net.Listen("tcp", ":"+grpcPort)
