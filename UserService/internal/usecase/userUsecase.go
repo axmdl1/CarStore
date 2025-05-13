@@ -52,7 +52,7 @@ func (u *UserUsecase) Register(ctx context.Context, email, username, password, r
 		Username:  username,
 		Password:  string(hashed),
 		Role:      role,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 		IsActive:  false,
 	}
 

@@ -23,7 +23,7 @@ func (c carRepo) Create(ctx context.Context, car *entity.Car) error {
 	if car.ID == uuid.Nil {
 		car.ID = uuid.New()
 	}
-	car.CreatedAt = time.Now()
+	car.CreatedAt = time.Now().UTC()
 	_, err := c.coll.InsertOne(ctx, car)
 	return err
 }
