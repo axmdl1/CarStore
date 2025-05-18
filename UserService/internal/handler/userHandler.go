@@ -41,7 +41,7 @@ func (h *AuthHandler) RegisterUser(ctx context.Context, req *userpb.RegisterUser
 }
 
 func (h *AuthHandler) LoginUser(ctx context.Context, req *userpb.LoginUserRequest) (*userpb.AuthResponse, error) {
-	log.Printf("LoginUser request: %+v", req)
+	log.Printf("LoginUser request: %+v", req.Identifier) //password hidden
 	// pick identifier
 	ident := req.Identifier
 	token, err := h.uc.Login(ctx, ident, req.Password)
