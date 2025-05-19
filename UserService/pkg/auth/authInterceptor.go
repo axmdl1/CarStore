@@ -41,8 +41,8 @@ var methodACL = map[string]string{
 	// OrderService
 	"/order.OrderService/CreateOrder": "user",
 	"/order.OrderService/GetOrder":    "user",
-	"/order.OrderService/ListOrders":  "user",
-	"/order.OrderService/UpdateOrder": "user",
+	"/order.OrderService/ListOrders":  "admin",
+	"/order.OrderService/UpdateOrder": "admin",
 	"/order.OrderService/DeleteOrder": "admin",
 }
 

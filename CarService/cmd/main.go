@@ -25,7 +25,7 @@ func main() {
 	_ = godotenv.Load()
 
 	// read env
-	mongoURI := os.Getenv("MONGO_URI_ATLAS")
+	mongoURI := os.Getenv("CAR_SERVICE_MONGO_URI")
 	dbName := os.Getenv("CAR_SERVICE_DB_NAME")
 	jwtSecret := os.Getenv("JWT_SECRET")
 	grpcPort := os.Getenv("CAR_SERVICE_PORT")

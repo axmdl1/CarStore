@@ -18,7 +18,7 @@ import (
 
 func main() {
 	_ = godotenv.Load()
-	uri := os.Getenv("MONGO_URI_ATLAS")
+	uri := os.Getenv("ORDER_SERVICE_MONGO_URI")
 	dbName := os.Getenv("ORDER_SERVICE_DB_NAME")
 	jwtSecret := os.Getenv("JWT_SECRET")
 	port := os.Getenv("ORDER_SERVICE_PORT")

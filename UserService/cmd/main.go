@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// env vars
-	mongoURI := os.Getenv("MONGO_URI_ATLAS")
+	mongoURI := os.Getenv("USER_SERVICE_MONGO_URI")
 	dbName := os.Getenv("USER_SERVICE_DB_NAME")
 	jwtSecret := os.Getenv("JWT_SECRET")
 	grpcPort := os.Getenv("GRPC_PORT")
