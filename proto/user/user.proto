@@ -28,9 +28,6 @@ service UserService {
     };
   };
   rpc GetProfile (GetProfileRequest) returns (ProfileResponse) {
-    //option (google.api.http) = {
-    //  get: "/user/profile/{userID}"
-    //};
     option (google.api.http) = {
       get: "/user/profile"
     };
@@ -52,13 +49,28 @@ service UserService {
       body: "*"
     };
   }
-
   rpc ChangeUserRole(ChangeUserRoleRequest) returns (ChangeUserRoleResponse) {
     option (google.api.http) = {
       put:  "/user/role"
       body: "*"
     };
   }
+
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
+    option (google.api.http) = {
+      post: "/user/delete"
+      body: "*"
+    };
+  }
+}
+
+message DeleteUserRequest {
+  string user_id = 1 [json_name = "user_id"];
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string status = 2;
 }
 
 message ChangeUserRoleRequest {

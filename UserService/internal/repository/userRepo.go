@@ -3,6 +3,7 @@ package repository
 import (
 	"CarStore/UserService/internal/entity"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,6 +22,7 @@ type UserRepository interface {
 	SetVerificationCode(ctx context.Context, email, code string, expires time.Time) error
 	VerifyCode(ctx context.Context, email, code string) (*entity.User, error)
 	ChangeRole(ctx context.Context, id, role string) (*entity.User, error)
+	DeleteUser(ctx context.Context, id string) error
 }
 
 type userRepositoryMongo struct {
@@ -130,4 +132,21 @@ func (u *userRepositoryMongo) ChangeRole(ctx context.Context, id, role string) (
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (u *userRepositoryMongo) DeleteUser(ctx context.Context, id string) error {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid user id: %v", err)
+	}
+
+	filter := bson.M{"id": uid}
+	res, err := u.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return errors.New("user not found")
+	}
+	return nil
 }

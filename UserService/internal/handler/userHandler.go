@@ -117,3 +117,20 @@ func (h *AuthHandler) ChangeUserRole(ctx context.Context, req *userpb.ChangeUser
 		Status: "ok",
 	}, nil
 }
+
+func (h *AuthHandler) DeleteUser(ctx context.Context, req *userpb.DeleteUserRequest) (*userpb.DeleteUserResponse, error) {
+	log.Printf("DeleteUser request: %+v", req.UserId)
+
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user id required")
+	}
+
+	if err := h.uc.DeleteUser(ctx, req.UserId); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "could not delete user: %v", err)
+	}
+
+	return &userpb.DeleteUserResponse{
+		Success: true,
+		Status:  "deleted",
+	}, nil
+}

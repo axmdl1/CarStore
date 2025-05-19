@@ -168,3 +168,17 @@ func (u *UserUsecase) ChangeUserRole(ctx context.Context, userID, newRole string
 	u.rdb.Del(ctx, key)
 	return updated, nil
 }
+
+func (u *UserUsecase) DeleteUser(ctx context.Context, userID string) error {
+	if userID == "" {
+		return errors.New("user id required")
+	}
+
+	if err := u.repo.DeleteUser(ctx, userID); err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf("user:profile:%s", userID)
+	u.rdb.Del(ctx, key)
+	return nil
+}
