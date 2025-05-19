@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -15,6 +17,8 @@ import (
 )
 
 func run() error {
+	_ = godotenv.Load()
+
 	ctx := context.Background()
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
@@ -30,8 +34,9 @@ func run() error {
 		return err
 	}
 
-	log.Println("Server listening on :8080")
-	return http.ListenAndServe(":8080", mux)
+	var port = os.Getenv("API_GATEWAY_PORT")
+	log.Println("Server listening on :" + port)
+	return http.ListenAndServe(":"+port, mux)
 }
 
 func main() {
