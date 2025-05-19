@@ -155,3 +155,16 @@ func (u *UserUsecase) ConfirmEmail(ctx context.Context, email, code string) (str
 	u.rdb.Del(ctx, fmt.Sprintf("user:profile:%s", user.ID.String()))
 	return token, nil
 }
+
+func (u *UserUsecase) ChangeUserRole(ctx context.Context, userID, newRole string) (*entity.User, error) {
+	if newRole != "admin" && newRole != "user" {
+		return nil, errors.New("invalid role")
+	}
+	updated, err := u.repo.ChangeRole(ctx, userID, newRole)
+	if err != nil {
+		return nil, err
+	}
+	key := fmt.Sprintf("user:profile:%s", userID)
+	u.rdb.Del(ctx, key)
+	return updated, nil
+}

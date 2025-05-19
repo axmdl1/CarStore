@@ -29,6 +29,7 @@ var methodACL = map[string]string{
 	"/user.UserService/ConfirmEmail":         "anon",
 	"/user.UserService/GetProfile":           "user",
 	"/user.UserService/ListUsers":            "admin",
+	"/user.UserService/ChangeUserRole":       "admin",
 
 	// CarService
 	"/car.CarService/ListCars":      "anon",

@@ -3,9 +3,11 @@ package repository
 import (
 	"CarStore/UserService/internal/entity"
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -18,6 +20,7 @@ type UserRepository interface {
 	FindAll(ctx context.Context) ([]*entity.User, error)
 	SetVerificationCode(ctx context.Context, email, code string, expires time.Time) error
 	VerifyCode(ctx context.Context, email, code string) (*entity.User, error)
+	ChangeRole(ctx context.Context, id, role string) (*entity.User, error)
 }
 
 type userRepositoryMongo struct {
@@ -110,4 +113,21 @@ func (u *userRepositoryMongo) VerifyCode(ctx context.Context, email, code string
 		"code_expires": bson.M{"$gte": time.Now()},
 	}).Decode(&user)
 	return &user, err
+}
+
+func (u *userRepositoryMongo) ChangeRole(ctx context.Context, id, role string) (*entity.User, error) {
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %v", err)
+	}
+
+	filter := bson.M{"id": uid}
+	update := bson.M{"$set": bson.M{"role": role}}
+	after := options.After
+	res := u.collection.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(after))
+	var user entity.User
+	if err := res.Decode(&user); err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

@@ -78,6 +78,7 @@ func (h *AuthHandler) ListUsers(ctx context.Context, req *userpb.ListUsersReques
 			Email:    u.Email,
 			Username: u.Username,
 			Password: u.Password,
+			Role:     u.Role,
 		})
 	}
 	return resp, nil
@@ -99,4 +100,20 @@ func (h *AuthHandler) ConfirmEmail(ctx context.Context, req *userpb.ConfirmEmail
 		return nil, err
 	}
 	return &userpb.ConfirmEmailResponse{Token: token, Status: "verified"}, nil
+}
+
+func (h *AuthHandler) ChangeUserRole(ctx context.Context, req *userpb.ChangeUserRoleRequest) (*userpb.ChangeUserRoleResponse, error) {
+	updated, err := h.uc.ChangeUserRole(ctx, req.UserId, req.Role)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "could not change role: %v", err)
+	}
+	return &userpb.ChangeUserRoleResponse{
+		User: &userpb.User{
+			Id:       updated.ID.String(),
+			Email:    updated.Email,
+			Username: updated.Username,
+			Role:     updated.Role,
+		},
+		Status: "ok",
+	}, nil
 }
